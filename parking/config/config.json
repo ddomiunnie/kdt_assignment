@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "root",
+    "password": "1234",
+    "database": "kdt8",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "ddomi": {
+    "username": "admin",
+    "password": "12345678",
+    "database": "kdt8",
+    "host": "kdt8-test.cgg2fnc19t50.ap-northeast-2.rds.amazonaws.com",
+    "dialect": "mysql"
+  }
+}
