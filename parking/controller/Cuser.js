@@ -2,6 +2,12 @@ const { User } = require('../models');
 const bcrypt = require('bcrypt');
 const saltNumber = 10;
 
+//쿠키 설정
+const cookieConfig = {
+  httpOnly: true,
+  maxAge: 24 * 60 * 60 * 1000, //24시간으로 설정
+};
+
 //GET
 exports.signup = (req, res) => {
   res.render('signup');
@@ -17,9 +23,23 @@ exports.success = (req, res) => {
 exports.verify = (req, res) => {
   res.render('verify');
 };
-exports.edit = (req, res) => {
-  const { userid } = req.params;
-  res.render('edit', { userid });
+
+exports.profile = async (req, res) => {
+  try {
+    const { userid } = req.params;
+
+    // 사용자 정보를 DB에서 조회
+    const user = await User.findOne({
+      where: { userid: userid },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+    res.render('profile', { user });
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 //POST
@@ -56,6 +76,8 @@ exports.postLogin = async (req, res) => {
     //비밀번호 확인
     const compare = comparePassword(password, user.password);
     if (compare) {
+      res.cookie('isLoggin', true, cookieConfig);
+      req.session.user = user;
       res.json({ result: true });
     } else {
       res.json({ result: false, message: '비밀번호가 일치하지 않습니다.' });
@@ -93,9 +115,7 @@ exports.editProfile = (req, res) => {
             res.json({ result: true });
           })
           .catch((error) => {
-            res
-              .status(500)
-              .json({ result: false, message: '프로필 수정에 실패했습니다.' });
+            console.log(error);
           });
       }
     })
@@ -109,9 +129,18 @@ exports.editProfile = (req, res) => {
 //DELETE
 exports.drop = (req, res) => {
   const { userid } = req.body;
-  User.drop({
+  User.destroy({
     where: { userid },
-  }).then(() => {
-    res.json({ result: true });
-  });
+  })
+    .then(() => {
+      res.clearCookie('isLoggin'); // 오타 수정: 'isLoggin' 대신 'isLoggin'으로 변경
+      req.session.destroy(); // 세션 삭제
+      res.json({ result: true });
+    })
+    .catch((error) => {
+      console.log(error);
+      res
+        .status(500)
+        .json({ result: false, message: '사용자 삭제에 실패했습니다.' });
+    });
 };
