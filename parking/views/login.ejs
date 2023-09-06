@@ -16,10 +16,20 @@
     <br />
     <a href="/user/find">비밀번호 찾기</a>
     <a href="/user/signup">회원가입하기</a>
+    <a href="/user/<%= userid %>/edit">회원 정보 수정</a>
 
     <script>
       function login(e) {
         e.preventDefault();
+
+        const userid = document.querySelector('#userid').value;
+        const password = document.querySelector('#password').value;
+
+        if (!userid || !password) {
+          console.log('아이디와 비밀번호를 입력하세요');
+          return;
+        }
+
         axios({
           method: 'POST',
           url: '/user/login',
@@ -29,9 +39,11 @@
           },
         }).then((res) => {
           if (res.data.result) {
-            console.log(`${res.data.userid}님 로그인 성공`);
+            localStorage.setItem('userid', userid);
+            console.log(`로그인 성공`);
           } else {
-            document.location.reload();
+            console.log('로그인 실패');
+            window.location.reload();
           }
         });
       }

@@ -1,24 +1,36 @@
 const { User } = require('../models');
 const bcrypt = require('bcrypt');
+const saltNumber = 10;
 
 //GET
 exports.signup = (req, res) => {
   res.render('signup');
 };
 exports.login = (req, res) => {
-  res.render('login');
+  const { userid } = req.params;
+  res.render('login', { userid });
 };
 exports.success = (req, res) => {
-  res.render('success');
+  const { userid, nickname } = req.params;
+  res.render('success', { userid, nickname });
+};
+exports.verify = (req, res) => {
+  res.render('verify');
+};
+exports.edit = (req, res) => {
+  const { userid } = req.params;
+  res.render('edit', { userid });
 };
 
 //POST
-exports.post_signup = async (req, res) => {
-  const { userid, password, name, nickname, phone } = req.body;
+exports.postSignup = async (req, res) => {
   try {
+    const { userid, password, name, nickname, phone } = req.body;
+    const hashPw = bcryptPassword(password);
+
     const user = await User.create({
       userid,
-      password,
+      password: hashPw,
       name,
       nickname,
       phone,
@@ -31,20 +43,75 @@ exports.post_signup = async (req, res) => {
   }
 };
 
-exports.post_login = async (req, res) => {
-  const { userid, password } = req.body;
+exports.postLogin = async (req, res) => {
   try {
+    const { userid, password } = req.body;
+    //사용자 조회
     const user = await User.findOne({
       where: { userid: userid },
     });
-    if (user) {
-      const result = await bcrypt.compare(password, user.password);
-
-      res.json({ result: true, data: user });
+    if (!user) {
+      res.json({ result: false, message: '사용자가 존재하지 않습니다.' });
+    }
+    //비밀번호 확인
+    const compare = comparePassword(password, user.password);
+    if (compare) {
+      res.json({ result: true });
     } else {
-      res.json({ result: false, message: '존재하는 사용자가 없습니다.' });
+      res.json({ result: false, message: '비밀번호가 일치하지 않습니다.' });
     }
   } catch (error) {
-    res.status(500).json({ result: false, message: '로그인에 실패했습니다.' });
+    res.status(500).json({ result: false, message: '로그인에 실패했습니다.' }); // 로그인 실패
   }
+};
+
+const bcryptPassword = (pw) => {
+  return bcrypt.hashSync(pw, 10);
+};
+const comparePassword = (pw, dbPw) => {
+  return bcrypt.compareSync(pw, dbPw);
+};
+
+//PATCH
+exports.editProfile = (req, res) => {
+  const { userid, password, name, nickname, phone } = req.body;
+  User.findOne({ where: { userid: userid } })
+    .then((user) => {
+      if (!user) {
+        res.json({ result: false, message: '사용자가 존재하지 않습니다.' });
+      } else {
+        User.update(
+          {
+            password: bcryptPassword(password),
+            name,
+            nickname,
+            phone,
+          },
+          { where: { userid: userid } }
+        )
+          .then(() => {
+            res.json({ result: true });
+          })
+          .catch((error) => {
+            res
+              .status(500)
+              .json({ result: false, message: '프로필 수정에 실패했습니다.' });
+          });
+      }
+    })
+    .catch((error) => {
+      res
+        .status(500)
+        .json({ result: false, message: '프로필 수정에 실패했습니다.' });
+    });
+};
+
+//DELETE
+exports.drop = (req, res) => {
+  const { userid } = req.body;
+  User.drop({
+    where: { userid },
+  }).then(() => {
+    res.json({ result: true });
+  });
 };
